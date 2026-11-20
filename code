@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini 4 · Model Lab 元素周期表合成实验室</title>
+  <style>
+    :root {
+      --bg-page: #ffffff;
+      --surface: #ffffff;
+      --surface-subtle: #f8fafc;
+      --surface-pill: #f1f5f9;
+      --border-light: #e5e7eb;
+      --border-med: #cbd5e1;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --btn-dark: #1e293b;
+      --btn-dark-hover: #0f172a;
+      --shadow-card: 0 18px 45px -10px rgba(15, 23, 42, 0.09), 0 4px 16px -4px rgba(15, 23, 42, 0.04);
+      --shadow-pill: 0 4px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Google Sans", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 36px 16px 48px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 顶部柔和蓝紫光晕（还原视频背景氛围） */
+    .ambient-glow {
+      position: fixed;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 680px;
+      height: 360px;
+      background: radial-gradient(ellipse at center, rgba(199, 210, 254, 0.65) 0%, rgba(224, 231, 255, 0.28) 42%, rgba(255, 255, 255, 0) 75%);
+      pointer-events: none;
+      z-index: 0;
+      transition: background 0.8s ease;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 780px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* 顶部标题 */
+    .hero-title {
+      font-size: clamp(1.55rem, 3vw, 2.05rem);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: #1f1f1f;
+      margin-top: 22px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    /* Ask Gemini 输入框胶囊 */
+    .prompt-bar {
+      width: 100%;
+      max-width: 650px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-light);
+      border-radius: 9999px;
+      padding: 8px 10px 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow-pill);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      z-index: 20;
+    }
+
+    .prompt-bar:focus-within {
+      border-color: #c7d2fe;
+      box-shadow: 0 8px 28px rgba(99, 102, 241, 0.1);
+    }
+
+    .plus-icon-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .plus-icon-btn:hover { background: var(--surface-pill); color: var(--text-primary); }
+
+    .prompt-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      min-width: 0;
+    }
+    .prompt-input::placeholder { color: #9ca3af; }
+
+    /* 模型/物质选择下拉胶囊 (Hydrogen v / Neon v / H2O v) */
+    .model-selector-wrap {
+      position: relative;
+    }
+
+    .model-dropdown-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f3f4f6;
+      hover: #e5e7eb;
+      border: 1px solid transparent;
+      border-radius: 9999px;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .model-dropdown-btn:hover {
+      background: #e5e7eb;
+    }
+    .model-dropdown-btn.open {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #1e1b4b;
+    }
+    .model-dropdown-btn svg {
+      width: 14px;
+      height: 14px;
+      transition: transform 0.25s ease;
+    }
+    .model-dropdown-btn.open svg {
+      transform: rotate(180deg);
+    }
+
+    /* 合成结果弹出提示气泡（还原视频 00:07 / 00:12 顶部右侧弹窗） */
+    .brew-toast {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      padding: 9px 14px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 40;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.96);
+      pointer-events: none;
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+    }
+    .brew-toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .toast-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.78rem;
+      border: 1.5px solid currentColor;
+    }
+
+    .toast-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .toast-title {
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #111827;
+    }
+    .toast-sub {
+      font-size: 0.72rem;
+      color: #6b7280;
+    }
+
+    /* Model Lab 主卡片 */
+    .model-lab-card {
+      width: 100%;
+      margin-top: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 22px;
+      padding: 16px 20px 20px;
+      box-shadow: var(--shadow-card);
+      transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: top center;
+    }
+
+    .model-lab-card.hidden {
+      display: none;
+    }
+
+    .lab-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .lab-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .lab-header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hover-readout {
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      background: var(--surface-subtle);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-light);
+    }
+
+    .close-lab-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      font-size: 1.15rem;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-lab-btn:hover { background: var(--surface-pill); color: #111827; }
+
+    /* 元素周期表区域 */
+    .ptable-wrapper {
+      position: relative;
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .ptable-grid {
+      display: grid;
+      grid-template-columns: repeat(18, minmax(32px, 1fr));
+      gap: 4px;
+      min-width: 630px;
+      position: relative;
+    }
+
+    /* 周期表左上中空区的 Gemini 4 标题（完全还原视频位置） */
+    .gemini-watermark {
+      grid-column: 3 / 13;
+      grid-row: 1 / 4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      user-select: none;
+      padding-top: 6px;
+    }
+    .gemini-watermark h2 {
+      font-size: clamp(1.45rem, 2.6vw, 1.9rem);
+      font-weight: 600;
+      color: #1f2937;
+      letter-spacing: -0.02em;
+    }
+    .gemini-watermark span {
+      font-size: 0.72rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .el-tile {
+      aspect-ratio: 1 / 1;
+      border-radius: 7px;
+      border: 1px solid #e5e7eb;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
+      position: relative;
+    }
+
+    .el-tile:hover {
+      transform: translateY(-2px) scale(1.12);
+      z-index: 10;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+      background: #ffffff;
+    }
+
+    .el-tile:active {
+      transform: scale(0.95);
+    }
+
+    .el-sym {
+      font-size: 0.76rem;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    /* 过渡金属默认精简小点点显示，悬浮或选中时显现符号（还原视频极简排布） */
+    .el-tile.compact .el-sym {
+      color: #9ca3af;
+      font-weight: 500;
+      font-size: 0.68rem;
+    }
+    .el-tile.compact:hover .el-sym,
+    .el-tile.in-slot .el-sym {
+      color: #1f2937;
+      font-weight: 700;
+      font-size: 0.76rem;
+    }
+
+    /* 元素分类淡彩描边（还原视频中的 C 淡紫、Ar/U/Pu 淡绿等视觉语言） */
+    .cat-nonmetal {
+      background: #f5f3ff;
+      border-color: #d8b4fe;
+      color: #6b21a8;
+    }
+    .cat-noble {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #065f46;
+    }
+    .cat-alkali {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+    .cat-alkaline {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: #9a3412;
+    }
+    .cat-halogen {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
+    }
+    .cat-metalloid {
+      background: #f0fdfa;
+      border-color: #99f6e4;
+      color: #115e59;
+    }
+    .cat-post {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+    .cat-transition {
+      background: #f9fafb;
+      border-color: #e5e7eb;
+      color: #4b5563;
+    }
+    .cat-actinide {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .el-tile.in-slot {
+      box-shadow: 0 0 0 2px #6366f1;
+    }
+
+    .lan-act-spacer {
+      grid-column: 1 / -1;
+      height: 5px;
+    }
+
+    /* 底部合成台区域（锥形瓶 + 8槽位 + Heat + Brew） */
+    .workbench {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    /* 左侧动态锥形瓶容器 */
+    .flask-stage {
+      width: 92px;
+      height: 112px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .flask-svg {
+      width: 86px;
+      height: 106px;
+      overflow: visible;
+    }
+
+    .flask-liquid {
+      transition: fill 0.55s ease, transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: bottom center;
+    }
+
+    /* 瓶内悬浮小徽章（还原视频 00:14 U & Pu 在液体中漂浮的效果） */
+    .flask-floating-items {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 54px;
+      height: 44px;
+      display: flex;
+      flex-wrap: wrap-reverse;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      pointer-events: none;
+    }
+
+    .mini-flask-pill {
+      font-size: 0.56rem;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(31, 41, 55, 0.35);
+      color: #1f2937;
+      animation: bobbing 2.2s ease-in-out infinite;
+    }
+    .mini-flask-pill:nth-child(even) {
+      animation-delay: 0.6s;
+    }
+
+    @keyframes bobbing {
+      0%, 100% { transform: translateY(0px) rotate(-3deg); }
+      50% { transform: translateY(-4px) rotate(4deg); }
+    }
+
+    /* 瓶口烟雾与粒子层 */
+    .flask-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .particle-dot {
+      position: absolute;
+      border-radius: 50%;
+      animation: riseUp 1.4s ease-out forwards;
+    }
+
+    @keyframes riseUp {
+      0% { transform: translate(0, 0) scale(0.7); opacity: 0.9; }
+      100% { transform: translate(var(--dx, 0px), var(--dy, -48px)) scale(1.6); opacity: 0; }
+    }
+
+    @keyframes flaskShake {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-3deg); }
+      40% { transform: rotate(3deg); }
+      60% { transform: rotate(-2deg); }
+      80% { transform: rotate(2deg); }
+    }
+    .flask-stage.brewing .flask-svg {
+      animation: flaskShake 0.45s ease-in-out infinite;
+    }
+
+    /* 中间控制区：8个槽位 + Heat 档位 */
+    .controls-center {
+      flex: 1;
+      min-width: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .slots-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .slot-box {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #1f2937;
+      transition: all 0.18s ease;
+      position: relative;
+    }
+
+    .slot-box.filled {
+      cursor: pointer;
+      animation: slotPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .slot-box.filled:hover {
+      transform: scale(0.92);
+      opacity: 0.8;
+    }
+    .slot-box.filled:hover::after {
+      content: "×";
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.75);
+      color: #fff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+
+    @keyframes slotPop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .heat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .heat-label {
+      font-size: 0.84rem;
+      font-weight: 500;
+      color: #6b7280;
+    }
+
+    .heat-segmented {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 9999px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .heat-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .heat-btn.active {
+      background: #ffffff;
+      color: #0f172a;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+
+    /* 右侧 Brew 按钮区 */
+    .brew-action-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .brew-btn {
+      background: var(--btn-dark);
+      color: #ffffff;
+      border: none;
+      border-radius: 9999px;
+      padding: 11px 28px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
+      min-width: 108px;
+    }
+
+    .brew-btn:hover:not(:disabled) {
+      background: var(--btn-dark-hover);
+      transform: translateY(-1px);
+    }
+
+    .brew-btn:disabled {
+      background: #475569;
+      cursor: wait;
+      animation: pulseBrew 0.9s infinite alternate;
+    }
+
+    @keyframes pulseBrew {
+      from { opacity: 0.78; }
+      to { opacity: 1; }
+    }
+
+    .clear-link {
+      font-size: 0.74rem;
+      color: #9ca3af;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding-right: 6px;
+    }
+    .clear-link:hover { color: #4b5563; text-decoration: underline; }
+
+    /* 反应现象与新生成物质结果展示条 */
+    .reaction-report {
+      margin-top: 14px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.82rem;
+      transition: all 0.3s ease;
+    }
+
+    .report-main {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .report-eq {
+      font-weight: 700;
+      color: #1e293b;
+      font-family: "Cambria Math", "Segoe UI", monospace;
+      font-size: 0.88rem;
+    }
+
+    .report-phenom {
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    /* 快捷配方体验胶囊 */
+    .quick-recipes {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .recipe-chip {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 9999px;
+      padding: 5px 12px;
+      font-size: 0.76rem;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .recipe-chip:hover {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #3730a3;
+    }
+
+    /* 对话回复气泡（支持直接在 Ask Gemini 中提问合成物质） */
+    .chat-reply-box {
+      width: 100%;
+      max-width: 650px;
+      margin-top: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #334155;
+      display: none;
+    }
+    .chat-reply-box.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="ambient-glow" id="ambientGlow"></div>
+
+<div class="app-shell">
+  <h1 class="hero-title">Where should we start?</h1>
+
+  <!-- 顶部 Ask Gemini 输入栏 -->
+  <div class="prompt-bar">
+    <button class="plus-icon-btn" title="展开/收起 Model Lab" onclick="toggleLab()">+</button>
+    <input
+      type="text"
+      id="promptInput"
+      class="prompt-input"
+      placeholder="Ask Gemini"
+      onkeydown="handlePromptKey(event)"
+    />
+    <div class="model-selector-wrap">
+      <button class="model-dropdown-btn open" id="modelDropdownBtn" onclick="toggleLab()">
+        <span id="currentModelName">Hydrogen</span>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M5 7.5L10 12.5L15 7.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <!-- 视频同款合成结果弹出卡片 -->
+      <div class="brew-toast" id="brewToast">
+        <div class="toast-badge" id="toastBadge">Ne</div>
+        <div class="toast-info">
+          <span class="toast-title" id="toastTitle">Gemini 4 Neon</span>
+          <span class="toast-sub" id="toastSub">合成成功 · 氖气单质</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- + Model Lab 元素周期表反应卡片 -->
+  <div class="model-lab-card" id="modelLabCard">
+    <div class="lab-header">
+      <div class="lab-title">
+        <span>+</span>
+        <span>Model lab</span>
+      </div>
+      <div class="lab-header-right">
+        <span class="hover-readout" id="hoverReadout">点击元素加入反应槽（最多 8 个）</span>
+        <button class="close-lab-btn" title="收起实验室" onclick="toggleLab()">×</button>
+      </div>
+    </div>
+
+    <!-- 元素周期表网格 -->
+    <div class="ptable-wrapper">
+      <div class="ptable-grid" id="ptableGrid">
+        <div class="gemini-watermark">
+          <h2>Gemini 4</h2>
+          <span id="formulaPreview">Select elements to synthesize</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部锥形瓶 + 8槽位 + Heat + Brew -->
+    <div class="workbench">
+      <!-- 左侧锥形瓶 -->
+      <div class="flask-stage" id="flaskStage">
+        <div class="flask-particles" id="flaskParticles"></div>
+        <svg class="flask-svg" viewBox="0 0 100 120">
+          <defs>
+            <clipPath id="flaskClip">
+              <path d="M38 14 L62 14 L62 42 L86 96 Q90 106 78 106 L22 106 Q10 106 14 96 L38 42 Z" />
+            </clipPath>
+          </defs>
+          <!-- 液体填充（动态缩放高度与颜色） -->
+          <g clip-path="url(#flaskClip)">
+            <rect
+              id="flaskLiquidRect"
+              class="flask-liquid"
+              x="8"
+              y="72"
+              width="84"
+              height="38"
+              fill="rgba(168, 85, 247, 0.28)"
+            />
+          </g>
+          <!-- 锥形瓶玻璃外轮廓 -->
+          <path
+            d="M35 12 L65 12 M39 12 L39 42 L14 96 Q10 106 22 106 L78 106 Q90 106 86 96 L61 42 L61 12"
+            fill="none"
+            stroke="#374151"
+            stroke-width="2.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <!-- 漂浮在瓶内液体中的元素微粒 -->
+        <div class="flask-floating-items" id="flaskFloatingItems"></div>
+      </div>
+
+      <!-- 中间 8 槽位与热量挡位 -->
+      <div class="controls-center">
+        <div class="slots-row" id="slotsRow"></div>
+
+        <div class="heat-row">
+          <span class="heat-label">Heat</span>
+          <div class="heat-segmented">
+            <button class="heat-btn active" data-heat="Low" onclick="setHeat('Low', this)">Low</button>
+            <button class="heat-btn" data-heat="Medium" onclick="setHeat('Medium', this)">Medium</button>
+            <button class="heat-btn" data-heat="High" onclick="setHeat('High', this)">High</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧 Brew 按钮 -->
+      <div class="brew-action-col">
+        <button class="brew-btn" id="brewBtn" onclick="startBrew()">Brew</button>
+        <button class="clear-link" onclick="clearSlots()">清空槽位</button>
+      </div>
+    </div>
+
+    <!-- 反应现象与产物说明栏 -->
+    <div class="reaction-report" id="reactionReport">
+      <div class="report-main">
+        <div class="report-eq" id="reportEq">🧪 等待合成：点击上方周期表元素添加至反应槽</div>
+        <div class="report-phenom" id="reportPhenom">
+          可复现视频同款反应（如 <b>C + C</b> 合成 Neon、<b>Ar + Ar</b> 合成 Krypton、<b>U + Pu</b> 裂变烟雾），或组合 <b>H + H + O</b>、<b>Na + Cl</b> 等观察真实化学现象。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快捷实验预设 -->
+  <div class="quick-recipes">
+    <button class="recipe-chip" onclick="applyPreset(['C','C'], 'Low')">🎬 视频同款：C + C (Low → Neon)</button>
+    <button class="recipe-chip" onclick="applyPreset(['Ar','Ar'], 'High')">🎬 视频同款：Ar + Ar (High → Krypton)</button>
+    <button class="recipe-chip" onclick="applyPreset(['U','Pu'], 'High')">☢️ 视频同款：U + Pu (High 裂变黑烟)</button>
+    <button class="recipe-chip" onclick="applyPreset(['H','H','O'], 'Medium')">💧 H₂ + O → H₂O (水)</button>
+    <button class="recipe-chip" onclick="applyPreset(['Na','Cl'], 'Medium')">🧂 Na + Cl → NaCl (黄光白烟)</button>
+    <button class="recipe-chip" onclick="applyPreset(['Fe','O'], 'High')">✨ Fe + O → Fe₃O₄ (火星四射)</button>
+  </div>
+
+  <!-- Ask Gemini 交互输出框 -->
+  <div class="chat-reply-box" id="chatReplyBox"></div>
+</div>
+
+<script>
+// ================= 1. 完整 118 号元素周期表数据 =================
+// [序数, 符号, 中文名, 英文名, 类别, 行, 列, 常见化合价, 液体代表色, 是否紧凑显示]
+const ELEMENTS = [
+  [1,'H','氢','Hydrogen','nonmetal',1,1,[1,-1],'rgba(56, 189, 248, 0.35)',false],
+  [2,'He','氦','Helium','noble',1,18,[0],'rgba(244, 114, 182, 0.35)',false],
+  [3,'Li','锂','Lithium','alkali',2,1,[1],'rgba(248, 113, 113, 0.35)',false],
+  [4,'Be','铍','Beryllium','alkaline',2,2,[2],'rgba(251, 146, 60, 0.35)',false],
+  [5,'B','硼','Boron','metalloid',2,13,[3],'rgba(45, 212, 191, 0.35)',false],
+  [6,'C','碳','Carbon','nonmetal',2,14,[4,2,-4],'rgba(168, 85, 247, 0.38)',false],
+  [7,'N','氮','Nitrogen','nonmetal',2,15,[-3,5],'rgba(96, 165, 250, 0.35)',false],
+  [8,'O','氧','Oxygen','nonmetal',2,16,[-2],'rgba(59, 130, 246, 0.38)',false],
+  [9,'F','氟','Fluorine','halogen',2,17,[-1],'rgba(129, 140, 248, 0.38)',false],
+  [10,'Ne','氖','Neon','noble',2,18,[0],'rgba(251, 113, 133, 0.42)',false],
+  [11,'Na','钠','Sodium','alkali',3,1,[1],'rgba(250, 204, 21, 0.42)',false],
+  [12,'Mg','镁','Magnesium','alkaline',3,2,[2],'rgba(226, 232, 240, 0.65)',false],
+  [13,'Al','铝','Aluminium','post',3,13,[3],'rgba(148, 163, 184, 0.4)',false],
+  [14,'Si','硅','Silicon','metalloid',3,14,[4,-4],'rgba(94, 234, 212, 0.35)',false],
+  [15,'P','磷','Phosphorus','nonmetal',3,15,[5,3,-3],'rgba(251, 146, 60, 0.4)',false],
+  [16,'S','硫','Sulfur','nonmetal',3,16,[-2,4,6],'rgba(250, 204, 21, 0.45)',false],
+  [17,'Cl','氯','Chlorine','halogen',3,17,[-1,1],'rgba(163, 230, 53, 0.42)',false],
+  [18,'Ar','氩','Argon','noble',3,18,[0],'rgba(52, 211, 153, 0.42)',false],
+  [19,'K','钾','Potassium','alkali',4,1,[1],'rgba(192, 132, 252, 0.4)',false],
+  [20,'Ca','钙','Calcium','alkaline',4,2,[2],'rgba(253, 186, 116, 0.4)',false],
+  [21,'Sc','钪','Scandium','transition',4,3,[3],'rgba(148, 163, 184, 0.35)',true],
+  [22,'Ti','钛','Titanium','transition',4,4,[4],'rgba(148, 163, 184, 0.35)',true],
+  [23,'V','钒','Vanadium','transition',4,5,[5],'rgba(148, 163, 184, 0.35)',true],
+  [24,'Cr','铬','Chromium','transition',4,6,[3,6],'rgba(148, 163, 184, 0.35)',true],
+  [25,'Mn','锰','Manganese','transition',4,7,[2,4,7],'rgba(167, 139, 250, 0.35)',true],
+  [26,'Fe','铁','Iron','transition',4,8,[2,3],'rgba(234, 88, 12, 0.42)',true],
+  [27,'Co','钴','Cobalt','transition',4,9,[2,3],'rgba(59, 130, 246, 0.4)',true],
+  [28,'Ni','镍','Nickel','transition',4,10,[2],'rgba(52, 211, 153, 0.35)',true],
+  [29,'Cu','铜','Copper','transition',4,11,[2,1],'rgba(217, 119, 6, 0.45)',true],
+  [30,'Zn','锌','Zinc','transition',4,12,[2],'rgba(148, 163, 184, 0.4)',true],
+  [31,'Ga','镓','Gallium','post',4,13,[3],'rgba(148, 163, 184, 0.35)',false],
+  [32,'Ge','锗','Germanium','metalloid',4,14,[4],'rgba(45, 212, 191, 0.35)',false],
+  [33,'As','砷','Arsenic','metalloid',4,15,[3,5],'rgba(45, 212, 191, 0.35)',false],
+  [34,'Se','硒','Selenium','nonmetal',4,16,[-2,4],'rgba(248, 113, 113, 0.35)',false],
+  [35,'Br','溴','Bromine','halogen',4,17,[-1],'rgba(185, 28, 28, 0.42)',false],
+  [36,'Kr','氪','Krypton','noble',4,18,[0],'rgba(168, 85, 247, 0.42)',false],
+  [37,'Rb','铷','Rubidium','alkali',5,1,[1],'rgba(248, 113, 113, 0.35)',false],
+  [38,'Sr','锶','Strontium','alkaline',5,2,[2],'rgba(251, 146, 60, 0.35)',false],
+  [39,'Y','钇','Yttrium','transition',5,3,[3],'rgba(148, 163, 184, 0.35)',true],
+  [40,'Zr','锆','Zirconium','transition',5,4,[4],'rgba(148, 163, 184, 0.35)',true],
+  [41,'Nb','铌','Niobium','transition',5,5,[5],'rgba(148, 163, 184, 0.35)',true],
+  [42,'Mo','钼','Molybdenum','transition',5,6,[6],'rgba(148, 163, 184, 0.35)',true],
+  [43,'Tc','锝','Technetium','transition',5,7,[7],'rgba(148, 163, 184, 0.35)',true],
+  [44,'Ru','钌','Ruthenium','transition',5,8,[3],'rgba(148, 163, 184, 0.35)',true],
+  [45,'Rh','铑','Rhodium','transition',5,9,[3],'rgba(148, 163, 184, 0.35)',true],
+  [46,'Pd','钯','Palladium','transition',5,10,[2],'rgba(148, 163, 184, 0.35)',true],
+  [47,'Ag','银','Silver','transition',5,11,[1],'rgba(203, 213, 225, 0.55)',true],
+  [48,'Cd','镉','Cadmium','transition',5,12,[2],'rgba(148, 163, 184, 0.35)',true],
+  [49,'In','铟','Indium','post',5,13,[3],'rgba(148, 163, 184, 0.35)',false],
+  [50,'Sn','锡','Tin','post',5,14,[4,2],'rgba(148, 163, 184, 0.35)',false],
+  [51,'Sb','锑','Antimony','metalloid',5,15,[3,5],'rgba(45, 212, 191, 0.35)',false],
+  [52,'Te','碲','Tellurium','metalloid',5,16,[-2,4],'rgba(45, 212, 191, 0.35)',false],
+  [53,'I','碘','Iodine','halogen',5,17,[-1],'rgba(126, 34, 206, 0.42)',false],
+  [54,'Xe','氙','Xenon','noble',5,18,[0],'rgba(96, 165, 250, 0.42)',false],
+  [55,'Cs','铯','Caesium','alkali',6,1,[1],'rgba(251, 191, 36, 0.42)',false],
+  [56,'Ba','钡','Barium','alkaline',6,2,[2],'rgba(74, 222, 128, 0.38)',false],
+  [72,'Hf','铪','Hafnium','transition',6,4,[4],'rgba(148, 163, 184, 0.35)',true],
+  [73,'Ta','钽','Tantalum','transition',6,5,[5],'rgba(148, 163, 184, 0.35)',true],
+  [74,'W','钨','Tungsten','transition',6,6,[6],'rgba(100, 116, 139, 0.45)',true],
+  [75,'Re','铼','Rhenium','transition',6,7,[7],'rgba(148, 163, 184, 0.35)',true],
+  [76,'Os','锇','Osmium','transition',6,8,[4],'rgba(148, 163, 184, 0.35)',true],
+  [77,'Ir','铱','Iridium','transition',6,9,[3],'rgba(148, 163, 184, 0.35)',true],
+  [78,'Pt','铂','Platinum','transition',6,10,[2,4],'rgba(226, 232, 240, 0.6)',true],
+  [79,'Au','金','Gold','transition',6,11,[3,1],'rgba(250, 204, 21, 0.55)',true],
+  [80,'Hg','汞','Mercury','transition',6,12,[2,1],'rgba(148, 163, 184, 0.55)',true],
+  [81,'Tl','铊','Thallium','post',6,13,[1],'rgba(148, 163, 184, 0.35)',false],
+  [82,'Pb','铅','Lead','post',6,14,[2,4],'rgba(100, 116, 139, 0.45)',false],
+  [83,'Bi','铋','Bismuth','post',6,15,[3],'rgba(244, 114, 182, 0.38)',false],
+  [84,'Po','钋','Polonium','metalloid',6,16,[2,4],'rgba(45, 212, 191, 0.35)',false],
+  [85,'At','砹','Astatine','halogen',6,17,[-1],'rgba(129, 140, 248, 0.35)',false],
+  [86,'Rn','氡','Radon','noble',6,18,[0],'rgba(244, 114, 182, 0.38)',false],
+  [87,'Fr','钫','Francium','alkali',7,1,[1],'rgba(248, 113, 113, 0.35)',false],
+  [88,'Ra','镭','Radium','alkaline',7,2,[2],'rgba(74, 222, 128, 0.42)',false],
+  [104,'Rf','𬬻','Rutherfordium','transition',7,4,[4],'rgba(148, 163, 184, 0.35)',true],
+  [105,'Db','𬭊','Dubnium','transition',7,5,[5],'rgba(148, 163, 184, 0.35)',true],
+  [106,'Sg','𬭳','Seaborgium','transition',7,6,[6],'rgba(148, 163, 184, 0.35)',true],
+  [107,'Bh','𬭛','Bohrium','transition',7,7,[7],'rgba(148, 163, 184, 0.35)',true],
+  [108,'Hs','𬭶','Hassium','transition',7,8,[8],'rgba(148, 163, 184, 0.35)',true],
+  [109,'Mt','鿏','Meitnerium','transition',7,9,[3],'rgba(148, 163, 184, 0.35)',true],
+  [110,'Ds','𫟼','Darmstadtium','transition',7,10,[2],'rgba(148, 163, 184, 0.35)',true],
+  [111,'Rg','𬬭','Roentgenium','transition',7,11,[3],'rgba(148, 163, 184, 0.35)',true],
+  [112,'Cn','鎶','Copernicium','transition',7,12,[2],'rgba(148, 163, 184, 0.35)',true],
+  [113,'Nh','鿭','Nihonium','post',7,13,[1],'rgba(148, 163, 184, 0.35)',false],
+  [114,'Fl','𫓧','Flerovium','post',7,14,[2],'rgba(148, 163, 184, 0.35)',false],
+  [115,'Mc','镆','Moscovium','post',7,15,[1],'rgba(148, 163, 184, 0.35)',false],
+  [116,'Lv','𫟷','Livermorium','post',7,16,[2],'rgba(148, 163, 184, 0.35)',false],
+  [117,'Ts','鿬','Tennessine','halogen',7,17,[-1],'rgba(129, 140, 248, 0.35)',false],
+  [118,'Og','鿫','Oganesson','noble',7,18,[0],'rgba(236, 72, 153, 0.35)',false],
+
+  // 底部两行（锕系核心元素如 U, Pu 等，还原视频中第 9 行高亮绿框效果）
+  [57,'La','镧','Lanthanum','transition',9,4,[3],'rgba(148, 163, 184, 0.35)',true],
+  [58,'Ce','铈','Cerium','transition',9,5,[3],'rgba(148, 163, 184, 0.35)',true],
+  [60,'Nd','钕','Neodymium','transition',9,6,[3],'rgba(168, 85, 247, 0.35)',true],
+  [62,'Sm','钐','Samarium','transition',9,7,[3],'rgba(148, 163, 184, 0.35)',true],
+  [63,'Eu','铕','Europium','transition',9,8,[3],'rgba(244, 114, 182, 0.35)',true],
+  [64,'Gd','钆','Gadolinium','transition',9,9,[3],'rgba(148, 163, 184, 0.35)',true],
+  [66,'Dy','镝','Dysprosium','transition',9,10,[3],'rgba(148, 163, 184, 0.35)',true],
+  [68,'Er','铒','Erbium','transition',9,11,[3],'rgba(148, 163, 184, 0.35)',true],
+  [70,'Yb','镱','Ytterbium','transition',9,12,[3],'rgba(148, 163, 184, 0.35)',true],
+  [71,'Lu','镥','Lutetium','transition',9,13,[3],'rgba(148, 163, 184, 0.35)',true],
+  [90,'Th','钍','Thorium','actinide',9,14,[4],'rgba(74, 222, 128, 0.38)',false],
+  [92,'U','铀','Uranium','actinide',9,15,[6,4],'rgba(34, 197, 94, 0.45)',false],
+  [94,'Pu','钚','Plutonium','actinide',9,16,[4,3],'rgba(22, 163, 74, 0.5)',false],
+  [95,'Am','镅','Americium','actinide',9,17,[3],'rgba(74, 222, 128, 0.38)',false],
+  [98,'Cf','锎','Californium','actinide',9,18,[3],'rgba(74, 222, 128, 0.38)',false]
+];
+
+const EL_BY_SYM = {};
+ELEMENTS.forEach(e => { EL_BY_SYM[e[1]] = e; });
+
+// ================= 2. 反应配方库（含视频彩蛋 + 真实化学反应） =================
+const SPECIAL_REACTIONS = [
+  {
+    match: ['C', 'C'],
+    heats: ['Low', 'Medium'],
+    badge: 'Ne',
+    badgeBg: '#ffe4e6',
+    badgeColor: '#be123c',
+    modelName: 'Neon',
+    toastTitle: 'Gemini 4 Neon',
+    toastSub: '原子序数重组 · 氖气霓虹辉光',
+    liquidColor: 'rgba(234, 88, 12, 0.58)',
+    particleType: 'glow',
+    particleColor: '#fb7185',
+    eq: '2 ⁶C  === 低温聚变模型 ===  ¹⁰Ne (Gemini 4 Neon)',
+    phenom: '锥形瓶内紫色碳溶液受热转为暖橙琥珀色，释放出柔和的红橙色氖气霓虹辉光并产生细微气泡。'
+  },
+  {
+    match: ['Ar', 'Ar'],
+    heats: ['High', 'Medium'],
+    badge: 'Kr',
+    badgeBg: '#f3e8ff',
+    badgeColor: '#6b21a8',
+    modelName: 'Krypton',
+    toastTitle: 'Gemini 4 Krypton',
+    toastSub: '高能激发态 · 氪气冷白电离光',
+    liquidColor: 'rgba(52, 211, 153, 0.52)',
+    particleType: 'sparks',
+    particleColor: '#a855f7',
+    eq: '2 ¹⁸Ar  === 高温电离 ===  ³⁶Kr (Gemini 4 Krypton)',
+    phenom: '高温激发下翠绿色氩液剧烈沸腾，瓶口迸发出紫白色氪气电离火花，模型升级为 Gemini 4 Krypton。'
+  },
+  {
+    match: ['U', 'Pu'],
+    heats: ['High', 'Medium', 'Low'],
+    badge: 'Np',
+    badgeBg: '#dcfce7',
+    badgeColor: '#15803d',
+    modelName: 'Neptunium (Fission)',
+    toastTitle: 'Gemini 4 Supercritical',
+    toastSub: '超临界裂变反应 · 释放大量黑烟',
+    liquidColor: 'rgba(17, 24, 39, 0.85)',
+    particleType: 'smoke',
+    particleColor: '#1f2937',
+    eq: '²³⁵U + ²³⁹Pu  === 超临界链式反应 ===  裂变产物 + 中子能',
+    phenom: '重核元素在瓶底剧烈翻滚沸腾，溶液瞬间转为深炭黑色，瓶口持续升腾出浓密黑烟！'
+  },
+  {
+    match: ['H', 'H', 'O'],
+    heats: ['Low', 'Medium', 'High'],
+    badge: 'H₂O',
+    badgeBg: '#e0f2fe',
+    badgeColor: '#0369a1',
+    modelName: 'H₂O (水)',
+    toastTitle: '合成新物质：H₂O (水)',
+    toastSub: '共价化合物 · 无色透明液体',
+    liquidColor: 'rgba(56, 189, 248, 0.45)',
+    particleType: 'bubbles',
+    particleColor: '#7dd3fc',
+    eq: '2H₂ + O₂  === 点燃 ===  2H₂O',
+    phenom: '产生淡蓝色火焰并伴随清脆爆鸣声，释放热量后在锥形瓶内凝结出清澈的液态水。'
+  },
+  {
+    match: ['H', 'O'],
+    heats: ['Low', 'Medium', 'High'],
+    badge: 'H₂O',
+    badgeBg: '#e0f2fe',
+    badgeColor: '#0369a1',
+    modelName: 'H₂O (水)',
+    toastTitle: '合成新物质：H₂O (水)',
+    toastSub: '氢氧燃烧化合反应',
+    liquidColor: 'rgba(56, 189, 248, 0.45)',
+    particleType: 'bubbles',
+    particleColor: '#7dd3fc',
+    eq: '2H₂ + O₂  === 点燃 ===  2H₂O',
+    phenom: '氢与氧剧烈结合放出热量，烧瓶内壁出现细密水雾并汇集成清澈水珠。'
+  },
+  {
+    match: ['Na', 'Cl'],
+    heats: ['Low', 'Medium', 'High'],
+    badge: 'NaCl',
+    badgeBg: '#fef9c3',
+    badgeColor: '#a16207',
+    modelName: 'NaCl (氯化钠)',
+    toastTitle: '合成新物质：NaCl (食盐)',
+    toastSub: '离子晶体 · 白色固体颗粒',
+    liquidColor: 'rgba(250, 204, 21, 0.55)',
+    particleType: 'smoke',
+    particleColor: '#e2e8f0',
+    eq: '2Na + Cl₂  === 点燃 ===  2NaCl',
+    phenom: '金属钠在黄绿色氯气中剧烈燃烧，发出耀眼黄色光芒，生成大量白烟并在瓶底沉积白色食盐晶体。'
+  },
+  {
+    match: ['Fe', 'O'],
+    heats: ['Medium', 'High'],
+    badge: 'Fe₃O₄',
+    badgeBg: '#f1f5f9',
+    badgeColor: '#1e293b',
+    modelName: 'Fe₃O₄ (四氧化三铁)',
+    toastTitle: '合成新物质：Fe₃O₄',
+    toastSub: '黑色磁性金属氧化物',
+    liquidColor: 'rgba(30, 41, 59, 0.72)',
+    particleType: 'sparks',
+    particleColor: '#f97316',
+    eq: '3Fe + 2O₂  === 点燃 ===  Fe₃O₄',
+    phenom: '铁在纯氧中剧烈燃烧，火星四射，放出大量热能，生成黑色熔融状四氧化三铁固体。'
+  },
+  {
+    match: ['Mg', 'O'],
+    heats: ['Medium', 'High'],
+    badge: 'MgO',
+    badgeBg: '#f8fafc',
+    badgeColor: '#334155',
+    modelName: 'MgO (氧化镁)',
+    toastTitle: '合成新物质：MgO (氧化镁)',
+    toastSub: '离子化合物 · 白色蓬松粉末',
+    liquidColor: 'rgba(241, 245, 249, 0.85)',
+    particleType: 'glow',
+    particleColor: '#facc15',
+    eq: '2Mg + O₂  === 点燃 ===  2MgO',
+    phenom: '镁条燃烧发出极其耀眼的白光，瞬间照亮整个反应瓶，生成白色氧化镁粉末。'
+  },
+  {
+    match: ['C', 'O', 'O'],
+    heats: ['Medium', 'High'],
+    badge: 'CO₂',
+    badgeBg: '#f3f4f6',
+    badgeColor: '#374151',
+    modelName: 'CO₂ (二氧化碳)',
+    toastTitle: '合成新物质：CO₂',
+    toastSub: '无色无味气体 · 温室气体',
+    liquidColor: 'rgba(148, 163, 184, 0.35)',
+    particleType: 'bubbles',
+    particleColor: '#cbd5e1',
+    eq: 'C + O₂  === 充分燃烧 ===  CO₂↑',
+    phenom: '碳在充足氧气中白炽发光，持续冒出大量无色二氧化碳气体气泡。'
+  },
+  {
+    match: ['N', 'H', 'H', 'H'],
+    heats: ['High', 'Medium'],
+    badge: 'NH₃',
+    badgeBg: '#dcfce7',
+    badgeColor: '#15803d',
+    modelName: 'NH₃ (氨气)',
+    toastTitle: '合成新物质：NH₃ (氨气)',
+    toastSub: '哈伯法催化合成 · 碱性气体',
+    liquidColor: 'rgba(52, 211, 153, 0.38)',
+    particleType: 'bubbles',
+    particleColor: '#6ee7b7',
+    eq: 'N₂ + 3H₂  ⇌ 高温高压催化剂 ⇌  2NH₃',
+    phenom: '高温高压下氮气与氢气化合，瓶内液体翻涌并释放出具有刺激性氨味的无色气体。'
+  },
+  {
+    match: ['H', 'Cl'],
+    heats: ['Low', 'Medium', 'High'],
+    badge: 'HCl',
+    badgeBg: '#e0f2fe',
+    badgeColor: '#0284c7',
+    modelName: 'HCl (氯化氢)',
+    toastTitle: '合成新物质：HCl (盐酸气)',
+    toastSub: '强酸性极性共价分子',
+    liquidColor: 'rgba(186, 230, 253, 0.5)',
+    particleType: 'smoke',
+    particleColor: '#e0f2fe',
+    eq: 'H₂ + Cl₂  === 光照/点燃 ===  2HCl',
+    phenom: '氢气与氯气反应发出苍白色火焰，瓶口遇水蒸气形成大量白色酸雾。'
+  },
+  {
+    match: ['S', 'O', 'O'],
+    heats: ['Medium', 'High'],
+    badge: 'SO₂',
+    badgeBg: '#ede9fe',
+    badgeColor: '#6d28d9',
+    modelName: 'SO₂ (二氧化硫)',
+    toastTitle: '合成新物质：SO₂',
+    toastSub: '酸性氧化物 · 蓝紫色火焰',
+    liquidColor: 'rgba(139, 92, 246, 0.42)',
+    particleType: 'glow',
+    particleColor: '#8b5cf6',
+    eq: 'S + O₂  === 点燃 ===  SO₂↑',
+    phenom: '硫粉在氧气中产生明亮的蓝紫色火焰，生成有刺激性气味的二氧化硫气体。'
+  }
+];
+
+// ================= 3. 状态变量 =================
+const MAX_SLOTS = 8;
+let slots = []; // 存放元素符号数组，如 ['C', 'C']
+let currentHeat = 'Low';
+let isBrewing = false;
+let toastTimer = null;
+
+// ================= 4. 初始化周期表与槽位 =================
+function init() {
+  const grid = document.getElementById('ptableGrid');
+
+  // 镧系锕系间隙占位
+  const spacer = document.createElement('div');
+  spacer.className = 'lan-act-spacer';
+  spacer.style.gridRow = 8;
+  grid.appendChild(spacer);
+
+  ELEMENTS.forEach(el => {
+    const [num, sym, zh, en, cat, row, col, , , compact] = el;
+    const tile = document.createElement('div');
+    tile.className = `el-tile cat-${cat} ${compact ? 'compact' : ''}`;
+    tile.style.gridRow = row;
+    tile.style.gridColumn = col;
+    tile.dataset.sym = sym;
+
+    tile.innerHTML = `<span class="el-sym">${compact ? '··' : sym}</span>`;
+
+    tile.onmouseenter = () => {
+      if (compact) tile.querySelector('.el-sym').textContent = sym;
+      document.getElementById('hoverReadout').textContent = `${num} · ${sym} ${zh} (${en})`;
+    };
+
+    tile.onmouseleave = () => {
+      if (compact && !slots.includes(sym)) {
+        tile.querySelector('.el-sym').textContent = '··';
+      }
+    };
+
+    tile.onclick = () => addElementToSlot(sym);
+    grid.appendChild(tile);
+  });
+
+  renderSlots();
+  updateFlaskVisuals();
+}
+
+function addElementToSlot(sym) {
+  if (isBrewing) return;
+  if (slots.length >= MAX_SLOTS) {
+    // 槽位满时替换最后一个或轻晃提示
+    slots.shift();
+  }
+  slots.push(sym);
+  renderSlots();
+  updateFlaskVisuals();
+}
+
+function removeSlotAt(idx) {
+  if (isBrewing) return;
+  slots.splice(idx, 1);
+  renderSlots();
+  updateFlaskVisuals();
+}
+
+function clearSlots() {
+  if (isBrewing) return;
+  slots = [];
+  renderSlots();
+  updateFlaskVisuals();
+  document.getElementById('formulaPreview').textContent = 'Select elements to synthesize';
+}
+
+function renderSlots() {
+  const row = document.getElementById('slotsRow');
+  row.innerHTML = '';
+
+  for (let i = 0; i < MAX_SLOTS; i++) {
+    const box = document.createElement('div');
+    const sym = slots[i];
+    if (sym && EL_BY_SYM[sym]) {
+      const cat = EL_BY_SYM[sym][4];
+      box.className = `slot-box filled cat-${cat}`;
+      box.textContent = sym;
+      box.title = `点击移除 ${sym}`;
+      box.onclick = () => removeSlotAt(i);
+    } else {
+      box.className = 'slot-box';
+    }
+    row.appendChild(box);
+  }
+
+  // 同步周期表高亮状态
+  document.querySelectorAll('.el-tile').forEach(tile => {
+    const s = tile.dataset.sym;
+    const active = slots.includes(s);
+    tile.classList.toggle('in-slot', active);
+    if (tile.classList.contains('compact')) {
+      tile.querySelector('.el-sym').textContent = active ? s : '··';
+    }
+  });
+
+  // 更新 Gemini 4 下方实时化学式预览
+  if (slots.length === 0) {
+    document.getElementById('formulaPreview').textContent = 'Select elements to synthesize';
+  } else {
+    const counts = {};
+    slots.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+    const formula = Object.entries(counts)
+      .map(([k, v]) => `${k}${v > 1 ? toSubscript(v) : ''}`)
+      .join(' + ');
+    document.getElementById('formulaPreview').textContent = `${formula} · ${currentHeat} Heat`;
+  }
+}
+
+function setHeat(heat, btn) {
+  if (isBrewing) return;
+  currentHeat = heat;
+  document.querySelectorAll('.heat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSlots();
+}
+
+// ================= 5. 锥形瓶液面与漂浮微粒动态渲染 =================
+function updateFlaskVisuals(overrideColor = null) {
+  const rect = document.getElementById('flaskLiquidRect');
+  const floatWrap = document.getElementById('flaskFloatingItems');
+
+  // 根据槽位数量计算液面高度 (空时 y=96 浅底，满 8 个时 y=46 高液位)
+  const ratio = slots.length / MAX_SLOTS;
+  const height = 14 + ratio * 52;
+  const y = 108 - height;
+  rect.setAttribute('y', y.toFixed(1));
+  rect.setAttribute('height', height.toFixed(1));
+
+  if (overrideColor) {
+    rect.setAttribute('fill', overrideColor);
+  } else if (slots.length === 0) {
+    rect.setAttribute('fill', 'rgba(203, 213, 225, 0.28)');
+  } else {
+    // 取最新加入元素的代表色
+    const lastSym = slots[slots.length - 1];
+    const color = EL_BY_SYM[lastSym] ? EL_BY_SYM[lastSym][8] : 'rgba(99, 102, 241, 0.35)';
+    rect.setAttribute('fill', color);
+  }
+
+  // 在瓶内液体中显示浮动的元素徽章
+  floatWrap.innerHTML = slots
+    .slice(-4)
+    .map(s => `<span class="mini-flask-pill">${s}</span>`)
+    .join('');
+}
+
+function emitFlaskParticles(type, color) {
+  const container = document.getElementById('flaskParticles');
+  const count = type === 'smoke' ? 14 : 10;
+
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const dot = document.createElement('span');
+      dot.className = 'particle-dot';
+      const size = type === 'smoke' ? 8 + Math.random() * 10 : 4 + Math.random() * 5;
+      dot.style.width = `${size}px`;
+      dot.style.height = `${size}px`;
+      dot.style.left = `${38 + Math.random() * 16}px`;
+      dot.style.top = type === 'bubbles' ? `${68 + Math.random() * 20}px` : `${18 + Math.random() * 14}px`;
+      dot.style.background = color;
+      dot.style.setProperty('--dx', `${(Math.random() - 0.5) * 34}px`);
+      dot.style.setProperty('--dy', `${-32 - Math.random() * 36}px`);
+      container.appendChild(dot);
+      setTimeout(() => dot.remove(), 1450);
+    }, i * 65);
+  }
+}
+
+// ================= 6. Brew 合成执行引擎 =================
+function toSubscript(n) {
+  const sub = ['₀','₁','₂','₃','₄','₅','₆','₇','₈','₉'];
+  return String(n).split('').map(d => sub[Number(d)]).join('');
+}
+
+function gcd(a, b) {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+function resolveReaction(inputSlots, heat) {
+  if (inputSlots.length === 0) {
+    return {
+      badge: 'H',
+      badgeBg: '#f3f4f6',
+      badgeColor: '#374151',
+      modelName: 'Hydrogen',
+      toastTitle: 'Gemini 4 Hydrogen',
+      toastSub: '默认基础模型 · 氢元素单质',
+      liquidColor: 'rgba(56, 189, 248, 0.3)',
+      particleType: 'bubbles',
+      particleColor: '#93c5fd',
+      eq: '¹H · 氢单质 (未添加新反应物)',
+      phenom: '请点击周期表元素加入槽位后再点击 Brew 开始合成反应。'
+    };
+  }
+
+  // 1) 单元素提纯 / 激发反应
+  if (inputSlots.length === 1) {
+    const el = EL_BY_SYM[inputSlots[0]];
+    return {
+      badge: el[1],
+      badgeBg: '#eef2ff',
+      badgeColor: '#3730a3',
+      modelName: el[3],
+      toastTitle: `Gemini 4 ${el[3]}`,
+      toastSub: `${el[0]}号元素 · ${el[2]}单质激发态`,
+      liquidColor: el[8],
+      particleType: heat === 'High' ? 'sparks' : 'bubbles',
+      particleColor: '#818cf8',
+      eq: `${el[1]} (${el[2]}) — ${heat} 温区单质活化`,
+      phenom: `在 ${heat} 热量条件下对 ${el[2]}(${el[1]}) 单质进行激发，瓶内呈现特征元素色泽与微粒跃迁现象。`
+    };
+  }
+
+  // 2) 匹配预设经典反应与视频同款彩蛋
+  const sortedKey = [...inputSlots].sort().join('+');
+  let found = SPECIAL_REACTIONS.find(
+    r => [...r.match].sort().join('+') === sortedKey && r.heats.includes(heat)
+  );
+  if (!found) {
+    found = SPECIAL_REACTIONS.find(r => [...r.match].sort().join('+') === sortedKey);
+  }
+  if (found) return found;
+
+  // 3) 通用多元素智能化学合成引擎
+  const unique = [...new Set(inputSlots)];
+  if (unique.length === 2) {
+    const e1 = EL_BY_SYM[unique[0]];
+    const e2 = EL_BY_SYM[unique[1]];
+    const p1 = e1[7].find(v => v > 0);
+    const n2 = e2[7].find(v => v < 0);
+    const p2 = e2[7].find(v => v > 0);
+    const n1 = e1[7].find(v => v < 0);
+
+    let cat = null, ani = null, pv = 0, nv = 0;
+    if (p1 && n2) { cat = e1; ani = e2; pv = p1; nv = Math.abs(n2); }
+    else if (p2 && n1) { cat = e2; ani = e1; pv = p2; nv = Math.abs(n1); }
+
+    if (cat && ani) {
+      const d = gcd(pv, nv);
+      const cCount = nv / d;
+      const aCount = pv / d;
+      const formula = `${cat[1]}${cCount > 1 ? toSubscript(cCount) : ''}${ani[1]}${aCount > 1 ? toSubscript(aCount) : ''}`;
+      const zhName = `${ani[2]}化${cat[2]}`;
+      return {
+        badge: formula,
+        badgeBg: '#ecfdf5',
+        badgeColor: '#047857',
+        modelName: `${formula} (${zhName})`,
+        toastTitle: `合成新物质：${formula}`,
+        toastSub: `${zhName} · 化合价自动配平`,
+        liquidColor: heat === 'High' ? 'rgba(249, 115, 22, 0.45)' : 'rgba(16, 185, 129, 0.42)',
+        particleType: heat === 'High' ? 'sparks' : 'bubbles',
+        particleColor: heat === 'High' ? '#fb923c' : '#34d399',
+        eq: `${cCount > 1 ? cCount : ''}${cat[1]} + ${aCount > 1 ? aCount : ''}${ani[1]}  === ${heat} ===  ${formula} (${zhName})`,
+        phenom: `${cat[2]}(+${pv}) 与 ${ani[2]}(-${nv}) 发生电子转移化合，释放反应热并生成稳定的${zhName}晶体/分子。`
+      };
+    }
+  }
+
+  // 4) 同族或多元合金/复合体系
+  const counts = {};
+  inputSlots.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+  const hybridFormula = Object.entries(counts)
+    .map(([k, v]) => `${k}${v > 1 ? toSubscript(v) : ''}`)
+    .join('');
+  const names = unique.map(s => EL_BY_SYM[s][2]).join('·');
+
+  return {
+    badge: unique[0] + unique[1],
+    badgeBg: '#f3e8ff',
+    badgeColor: '#6b21a8',
+    modelName: `${hybridFormula} 复合体`,
+    toastTitle: `合成新物质：${hybridFormula}`,
+    toastSub: `${names}多元复合体系`,
+    liquidColor: 'rgba(139, 92, 246, 0.42)',
+    particleType: heat === 'Low' ? 'bubbles' : 'smoke',
+    particleColor: '#a78bfa',
+    eq: `${inputSlots.join(' + ')}  === ${heat} 熔融复合 ===  ${hybridFormula}`,
+    phenom: `在 ${heat} 温度场下，${names}原子间重新排布形成多元合金/复合相，伴随明显对流气泡与光热释放。`
+  };
+}
+
+function startBrew() {
+  if (isBrewing) return;
+  isBrewing = true;
+
+  const btn = document.getElementById('brewBtn');
+  const stage = document.getElementById('flaskStage');
+  btn.disabled = true;
+  btn.textContent = 'Brewing...';
+  stage.classList.add('brewing');
+
+  const outcome = resolveReaction(slots, currentHeat);
+
+  // 反应过程中的视觉现象
+  updateFlaskVisuals(outcome.liquidColor);
+  emitFlaskParticles(outcome.particleType, outcome.particleColor);
+
+  setTimeout(() => {
+    isBrewing = false;
+    btn.disabled = false;
+    btn.textContent = 'Brew';
+    stage.classList.remove('brewing');
+
+    // 更新顶部模型胶囊名称
+    document.getElementById('currentModelName').textContent = outcome.modelName;
+
+    // 弹出视频同款右上角通知气泡
+    showBrewToast(outcome);
+
+    // 更新底部反应方程式与现象报告
+    document.getElementById('reportEq').textContent = outcome.eq;
+    document.getElementById('reportPhenom').textContent = outcome.phenom;
+
+    // 同步顶部光晕色调
+    document.getElementById('ambientGlow').style.background =
+      `radial-gradient(ellipse at center, ${outcome.liquidColor} 0%, rgba(224, 231, 255, 0.2) 45%, rgba(255, 255, 255, 0) 75%)`;
+  }, 1050);
+}
+
+function showBrewToast(outcome) {
+  const toast = document.getElementById('brewToast');
+  const badge = document.getElementById('toastBadge');
+  badge.textContent = outcome.badge;
+  badge.style.backgroundColor = outcome.badgeBg;
+  badge.style.color = outcome.badgeColor;
+
+  document.getElementById('toastTitle').textContent = outcome.toastTitle;
+  document.getElementById('toastSub').textContent = outcome.toastSub;
+
+  toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 4200);
+}
+
+function applyPreset(elList, heat) {
+  if (isBrewing) return;
+  slots = [...elList];
+  currentHeat = heat;
+  document.querySelectorAll('.heat-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.heat === heat);
+  });
+  const card = document.getElementById('modelLabCard');
+  if (card.classList.contains('hidden')) toggleLab();
+  renderSlots();
+  updateFlaskVisuals();
+  startBrew();
+}
+
+function toggleLab() {
+  const card = document.getElementById('modelLabCard');
+  const btn = document.getElementById('modelDropdownBtn');
+  const willOpen = card.classList.contains('hidden');
+  card.classList.toggle('hidden', !willOpen);
+  btn.classList.toggle('open', willOpen);
+}
+
+// 支持在 Ask Gemini 输入框中直接就当前合成物质提问
+function handlePromptKey(e) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById('promptInput');
+  const q = input.value.trim();
+  if (!q) return;
+
+  const model = document.getElementById('currentModelName').textContent;
+  const eq = document.getElementById('reportEq').textContent;
+  const phenom = document.getElementById('reportPhenom').textContent;
+
+  const box = document.getElementById('chatReplyBox');
+  box.classList.add('visible');
+  box.innerHTML = `
+    <div style="font-size:0.76rem; color:#6366f1; font-weight:600; margin-bottom:4px;">
+      ✦ Gemini 4 · 当前激活物质/模型：${model}
+    </div>
+    <div style="margin-bottom:6px; color:#111827;"><strong>你的提问：</strong>${q}</div>
+    <div><strong>实验室反馈：</strong>当前反应体系为 <code>${eq}</code>。${phenom}</div>
+  `;
+  input.value = '';
+}
+
+init();
+</script>
+</body>
+</html>
